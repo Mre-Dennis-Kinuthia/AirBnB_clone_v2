@@ -12,6 +12,25 @@ from models.amenity import Amenity
 from models.review import Review
 
 
+def isfloat(arg):
+    """Checks if argument is a float data type variable"""
+    try:
+        float(arg)
+        return True
+    except ValueError:
+        return False
+
+
+def type_parser(arg):
+    """Check data type of arg and cast it"""
+    if arg.isalpha():
+        arg = str(arg)
+    elif arg.isdigit():
+        arg = int(arg)
+    elif isfloat(arg):
+        arg = float(arg)
+    return arg
+
 class HBNBCommand(cmd.Cmd):
     """ Contains the functionality for the HBNB console"""
 
@@ -73,8 +92,8 @@ class HBNBCommand(cmd.Cmd):
                 pline = pline[2].strip()  # pline is now str
                 if pline:
                     # check for *args or **kwargs
-                    if pline[0] == '{' and pline[-1] =='}'\
-                            and type(eval(pline)) is dict:
+                    if pline[0] == '{' and pline[-1] == '}'\
+                            and type(eval(pline)) == dict:
                         _args = pline
                     else:
                         _args = pline.replace(',', '')
@@ -115,56 +134,31 @@ class HBNBCommand(cmd.Cmd):
 
     def do_create(self, args):
         """ Create an object of any class"""
+        args = args.split()
+      
         if not args:
             print("** class name missing **")
-        return
-        # Split arguments into a list
-        args_list = shlex.split(args)
-        # Extract class name from arguments
-        class_name = args_list[0]
-        # check if class exists
-        if class_name not in HBNBCommand.classes:
+            return
+        elif args[0] not in HBNBCommand.classes:
             print("** class doesn't exist **")
-        return
-        # Create an empty dictionary for the parameters
-        new_dict = {}
-        # Parse each parameters and add it to the dictionary
-        for arg in args_list[1:]:
-            # Split parameters into key and value
-            arg_split = arg.split("=")
-            if len(arg_split) != 2:
-                continue
-            key = arg_split[0]
-            value = arg_split[1]
+            return
+        new_instance = eval(args[0])()
         
-            # parse string values.
-            if value.startswith('"') and value.endswith('"'):
-                # Remove quotes and replace underscores with spaces.
-                value = value[1:-1].replace("_", " ").replace('\\"', '"')
-            # parse float values.
-            elif "." in value:
-                try:
-                    value = float(value)
-                except ValueError:
-                    # Skip invalid values.
-                    continue
-            # parse integer values.
-            else:
-                try:
-                    value = int(value)
-                except ValueError:
-                    # Skip invalid values.
-                    continue
-            # Add parameter to dictionary
-            new_dict[key] = value
-        # Create object with given parameters
-        new_instance = HBNBCommand.classes[class_name](**new_dict)
-        # Save object to storage
+        new_dict = {}
+        for arg in args[1:]:
+            atr = arg.split("=")
+            key = atr[0]
+            if "_" in atr[1]:
+                atr[1] = atr[1].replace("_", " ")
+            value = type_parser(atr[1])    
+            new_dict[atr[0]] = atr[1]
+            # setattr(new_instance, type_parser(atr[0]), atr[1])
+            new_instance.__dict__.update({key: value})
+
+        
+        print(new_dict)
         storage.save()
-        # Print object ID
         print(new_instance.id)
-        # Save storage again to make sure the changes are written
-        storage.save()
 
     def help_create(self):
         """ Help information for the create method """
@@ -359,6 +353,7 @@ class HBNBCommand(cmd.Cmd):
         """ Help information for the update class """
         print("Updates an object with new information")
         print("Usage: update <className> <id> <attName> <attVal>\n")
+
 
 if __name__ == "__main__":
     HBNBCommand().cmdloop()
