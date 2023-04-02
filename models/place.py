@@ -25,6 +25,15 @@ class Place(BaseModel, Base):
     amenities = relationship(
         "Amenity", secondary="place_amenity", viewonly=False)
 
-    def __init__(self, *args, **kwargs):
-        """initialize Place"""
-        super().__init__(*args, **kwargs)
+    if os.getenv('HBNB_TYPE_STORAGE') != 'db':
+        @property
+        def reviews(self):
+            """
+            Getter attribute to retrieve all related reviews.
+            """
+            all_reviews = models.storage.all(Review)
+            place_reviews = []
+            for review in all_reviews.values():
+                if review.place_id == self.id:
+                    place_reviews.append(review)
+            return place_reviews
